@@ -12,6 +12,8 @@ import type { RootState } from "../lib/store"
 import { type LatLngTuple, latLngBounds } from "leaflet"
 import { v4 as uuidv4 } from "uuid"
 import L from "leaflet"
+import FitBounds from "./FitBounds"
+import GeolocationControl from "./GeolocationControl"
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
@@ -23,12 +25,6 @@ L.Icon.Default.mergeOptions({
     shadowUrl: markerShadow.src,
 })
 
-
-declare global {
-  interface Window {
-    ReactRedux: any
-  }
-}
 
 // Utility function to check if two polygons intersect
 const doPolygonsIntersect = (poly1: LatLngTuple[], poly2: LatLngTuple[]): boolean => {
@@ -74,40 +70,8 @@ const direction = (p1: LatLngTuple, p2: LatLngTuple, p3: LatLngTuple): number =>
   return (p3[1] - p1[1]) * (p2[0] - p1[0]) - (p2[1] - p1[1]) * (p3[0] - p1[0])
 }
 
-const GeolocationControl: React.FC = () => {
-  const map = useMap()
-
-  const handleGeolocation = () => {
-    map.locate({ setView: true, maxZoom: 16 })
-  }
-
-  return (
-    <div className="leaflet-bottom leaflet-left">
-      <div className="leaflet-control leaflet-bar">
-        <a href="#" title="Locate me" onClick={handleGeolocation} className="leaflet-control-geolocation">
-          📍
-        </a>
-      </div>
-    </div>
-  )
-}
-
 interface MapComponentProps {
   searchTerm: string
-}
-
-// This component will fit the map bounds to show all polygons
-const FitBounds: React.FC<{ polygons: LatLngTuple[][] }> = ({ polygons }) => {
-  const map = useMap()
-
-  useEffect(() => {
-    if (polygons.length > 0) {
-      const bounds = L.latLngBounds(polygons.flat())
-      map.fitBounds(bounds)
-    }
-  }, [map, polygons])
-
-  return null
 }
 
 const MapComponent: React.FC<MapComponentProps> = ({ searchTerm }) => {
@@ -115,7 +79,6 @@ const MapComponent: React.FC<MapComponentProps> = ({ searchTerm }) => {
   const polygons = useSelector((state: RootState) => state.polygon.polygons)
 
   const mapRef = useRef<L.Map>(null)
-  const drawnItemsRef = useRef<L.FeatureGroup>(null)
   const [error, setError] = useState<string | null>(null)
 
   const handleCreated = (e: any) => {
