@@ -2,8 +2,10 @@ import type React from "react"
 import { useState } from "react"
 import { useSelector, useDispatch } from "react-redux"
 import type { RootState } from "../lib/store"
-import { updatePolygon, deletePolygon, updatePolygonLabel } from "../lib/features/polygonSlice"
-import { TrashIcon, PencilIcon } from "@heroicons/react/24/outline"
+import { updatePolygon, deletePolygon, updatePolygonLabel, reshapePolygon } from "../lib/features/polygonSlice"
+import { TrashIcon, PencilIcon, CloudArrowDownIcon } from "@heroicons/react/24/outline"
+import type { FeatureCollection, Feature, Polygon as GeoJSONPolygon } from "geojson"
+import { PenIcon } from "lucide-react"
 
 interface PolygonListProps {
   searchTerm: string
@@ -22,9 +24,28 @@ const PolygonList: React.FC<PolygonListProps> = ({ searchTerm }) => {
   }
 
   const handleExport = (id: string) => {
-    debugger
+    const geoJSON: FeatureCollection = {
+      type: "FeatureCollection",
+      features: polygons.map(
+        (polygon): Feature<GeoJSONPolygon> => ({
+          type: "Feature",
+          geometry: {
+            type: "Polygon",
+            coordinates: [polygon.coordinates.map((coord) => [coord[1], coord[0]])],
+          },
+          properties: {
+            ...polygon?.properties,
+            id: polygon.id,
+            label: polygon.label,
+            fillColor: polygon.fillColor,
+            borderColor: polygon.borderColor,
+          },
+        }),
+      ),
+    }
+
     const polygon = polygons.filter(p => p.id == id)[0]
-    const dataStr = JSON.stringify(polygon)
+    const dataStr = JSON.stringify(geoJSON, null, 2)
     const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr)
     const exportFileDefaultName = `${polygon.label}.json`
 
@@ -36,6 +57,10 @@ const PolygonList: React.FC<PolygonListProps> = ({ searchTerm }) => {
 
   const handleDelete = (id: string) => {
     dispatch(deletePolygon(id))
+  }
+
+  const handleReshape = (id: string) => {
+    dispatch(reshapePolygon(id))
   }
 
   const handleLabelChange = (id: string, newLabel: string) => {
@@ -112,10 +137,17 @@ const PolygonList: React.FC<PolygonListProps> = ({ searchTerm }) => {
             </button>
             <button
               onClick={() => handleExport(polygon.id)}
-              className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white-600 bg-blue-500 border border-red-300 rounded-md hover:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-300"
+              className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-black-600 border border-gray-300 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-300"
             >
-              <TrashIcon className="w-4 h-4 mr-2" />
-              Export Polygons
+              <CloudArrowDownIcon className="w-4 h-4 mr-2" />
+              Export Polygon
+            </button>
+            <button
+              onClick={() => handleReshape(polygon.id)}
+              className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-black-600 border border-gray-300 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-300"
+            >
+              <PenIcon className="w-4 h-4 mr-2" />
+              Reshape Polygon
             </button>
           </div>
         </div>

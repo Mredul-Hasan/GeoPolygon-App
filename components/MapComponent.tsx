@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useRef, useCallback, useEffect } from "react"
-import { MapContainer, TileLayer, FeatureGroup, Polygon, Marker, Tooltip, useMap } from "react-leaflet"
+import { MapContainer, TileLayer, FeatureGroup, Polygon, LayersControl, GeoJSON, useMap } from "react-leaflet"
 import { EditControl } from "react-leaflet-draw"
 import "leaflet/dist/leaflet.css"
 import "leaflet-draw/dist/leaflet.draw.css"
@@ -79,9 +79,24 @@ interface MapComponentProps {
   searchTerm: string
 }
 
+// This component will fit the map bounds to show all polygons
+const FitBounds: React.FC<{ polygons: LatLngTuple[][] }> = ({ polygons }) => {
+  const map = useMap()
+
+  useEffect(() => {
+    if (polygons.length > 0) {
+      const bounds = L.latLngBounds(polygons.flat())
+      map.fitBounds(bounds)
+    }
+  }, [map, polygons])
+
+  return null
+}
+
 const MapComponent: React.FC<MapComponentProps> = ({ searchTerm }) => {
   const dispatch = useDispatch()
   const polygons = useSelector((state: RootState) => state.polygon.polygons)
+  const selectedPolygonId = useSelector((state: RootState) => state.polygon.selectedPolygonIndex)
   const [selectedPolygon, setSelectedPolygon] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -158,7 +173,19 @@ debugger
   const handlePolygonClick = useCallback((id: string) => {
     setSelectedPolygon(id)
   }, [])
-debugger
+
+  const handleReshape = useCallback((id: string) => {
+    const map = useMap()
+  // selectedPolygonId
+    debugger
+    const geojson = polygons.filter(p => p.id == polygons[selectedPolygonId].id)[0].coordinates
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    L.geoJSON(geojson).addTo(map);
+  }, [])
+
   const filteredPolygons = polygons.filter(
     (polygon) =>
       polygon?.label.toLowerCase().includes(searchTerm?.toLowerCase()) ||
@@ -173,13 +200,23 @@ debugger
   }, [filteredPolygons])
 
   return (
-    <div className="h-[600px] rounded-lg overflow-hidden shadow-md relative">
-      {error && <div className="absolute top-0 left-0 right-0 bg-red-500 text-white p-2 z-[1000]">{error}</div>}
-      <MapContainer center={[51.505, -0.09]} zoom={13} style={{ height: "100%", width: "100%" }} ref={mapRef}>
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+    <div className="h-screen w-full">
+      <MapContainer center={[51.505, -0.09]} zoom={13} className="h-full w-full" ref={mapRef}>
+        <LayersControl position="topleft">
+          <LayersControl.BaseLayer checked name="OSM">
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          </LayersControl.BaseLayer>
+          <LayersControl.BaseLayer name="Google">
+            <TileLayer
+              url="http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+              subdomains={["mt0", "mt1", "mt2", "mt3"]}
+            />
+          </LayersControl.BaseLayer>
+        </LayersControl>
+
         <FeatureGroup>
           <EditControl
-            position="topright"
+            position="topleft"
             onCreated={handleCreated}
             onEdited={handleEdited}
             draw={{
@@ -188,39 +225,39 @@ debugger
               circlemarker: false,
               marker: false,
               polyline: false,
+              polygon: {
+                allowIntersection: false,
+                drawError: {
+                  color: "#e1e4e8",
+                  message: "<strong>Error:</strong> Polygon edges cannot cross!",
+                },
+                shapeOptions: {
+                  color: "#000000",
+                  fillColor: "#FFFFFF",
+                },
+              },
             }}
           />
-          {filteredPolygons.map((polygon) => (
+          {polygons.map((polygon) => (
             <Polygon
-              key={polygon.id}
-              positions={polygon.coordinates}
-              pathOptions={{
-                color: polygon.borderColor,
-                fillColor: polygon.fillColor,
-                fillOpacity: 0.7,
-              }}
-              eventHandlers={{
-                click: () => handlePolygonClick(polygon.id),
-              }}
-            >
-              <Tooltip permanent>
-                <div className="text-xs font-semibold">{polygon.label}</div>
-              </Tooltip>
-            </Polygon>
+            key={polygon.id}
+            positions={polygon.coordinates}
+            pathOptions={{
+              color: polygon.borderColor,
+              fillColor: polygon.fillColor,
+              fillOpacity: 0.7,
+              weight: 2,
+            }}
+            eventHandlers={{
+              click: () => handlePolygonClick(polygon.id),
+            }}
+          >
+            {/* <L.Tooltip permanent>{polygon.label}</L.Tooltip> */}
+          </Polygon>
           ))}
-          {filteredPolygons.map((polygon) => {
-            const center = calculateCenter(polygon.coordinates)
-            const area = calculateArea(polygon.coordinates)
-            return (
-              <Marker key={`marker-${polygon.id}`} position={center}>
-                <Tooltip>
-                  <div className="text-xs font-semibold">Area: {area.toFixed(2)} km²</div>
-                </Tooltip>
-              </Marker>
-            )
-          })}
         </FeatureGroup>
         <GeolocationControl />
+        <FitBounds polygons={polygons.map((p) => p.coordinates)} />
       </MapContainer>
     </div>
   )
