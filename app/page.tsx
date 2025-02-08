@@ -2,10 +2,14 @@
 
 import type React from "react"
 import { useState } from "react"
-import MapComponent from "../components/MapComponent"
 import PolygonList from "../components/PolygonList"
 import ExportImport from "../components/ExportImport"
 import { MapIcon, ListBulletIcon } from "@heroicons/react/24/outline"
+import dynamic from "next/dynamic";
+
+const MapComponent = dynamic(() => import("../components/MapComponent"), {
+  ssr: false, // Prevents server-side rendering
+});
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"map" | "list">("map")
