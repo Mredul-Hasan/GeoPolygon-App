@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit"
-import { polygon, type LatLngTuple } from "leaflet"
+import type { LatLngTuple } from "leaflet"
 import type { Feature, FeatureCollection, Polygon as GeoJSONPolygon } from "geojson"
 import { v4 as uuidv4 } from "uuid"
 
@@ -9,17 +9,15 @@ export interface Polygon {
   fillColor: string
   borderColor: string
   label: string
-  geoJSON?: Feature<GeoJSONPolygon>
+  properties?: any
 }
 
 interface PolygonState {
-  polygons: Polygon[],
-  selectedPolygonIndex: number
+  polygons: Polygon[]
 }
 
 const initialState: PolygonState = {
   polygons: [],
-  selectedPolygonIndex: -1
 }
 
 const generateRandomColor = () => {
@@ -42,9 +40,6 @@ export const polygonSlice = createSlice({
     deletePolygon: (state, action: PayloadAction<string>) => {
       state.polygons = state.polygons.filter((p) => p.id !== action.payload)
     },
-    reshapePolygon: (state, action: PayloadAction<string>) => {
-      state.polygons = state.polygons.splice((state.polygons.filter((p) => p.id == action.payload), 1))
-    },
     updatePolygonLabel: (state, action: PayloadAction<{ id: string; label: string }>) => {
       const index = state.polygons.findIndex((p) => p.id === action.payload.id)
       if (index !== -1) {
@@ -63,12 +58,11 @@ export const polygonSlice = createSlice({
           properties: feature.properties || {},
         }))
       state.polygons = [...state.polygons, ...newPolygons]
-    },
+    }
   },
 })
 
-export const { addPolygon, updatePolygon, deletePolygon, reshapePolygon, importPolygons, updatePolygonLabel } =
-  polygonSlice.actions
+export const { addPolygon, updatePolygon, deletePolygon, importPolygons, updatePolygonLabel } = polygonSlice.actions
 
 export default polygonSlice.reducer
 

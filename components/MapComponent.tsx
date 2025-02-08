@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useRef, useCallback, useEffect } from "react"
-import { MapContainer, TileLayer, FeatureGroup, Polygon, LayersControl, GeoJSON, useMap } from "react-leaflet"
+import { MapContainer, TileLayer, FeatureGroup, Polygon, LayersControl, Marker, Tooltip, useMap } from "react-leaflet"
 import { EditControl } from "react-leaflet-draw"
 import "leaflet/dist/leaflet.css"
 import "leaflet-draw/dist/leaflet.draw.css"
@@ -12,6 +12,23 @@ import type { RootState } from "../lib/store"
 import { type LatLngTuple, latLngBounds } from "leaflet"
 import { v4 as uuidv4 } from "uuid"
 import L from "leaflet"
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconUrl: markerIcon.src,
+    iconRetinaUrl: markerIcon2x.src,
+    shadowUrl: markerShadow.src,
+})
+
+
+declare global {
+  interface Window {
+    ReactRedux: any
+  }
+}
 
 // Utility function to check if two polygons intersect
 const doPolygonsIntersect = (poly1: LatLngTuple[], poly2: LatLngTuple[]): boolean => {
@@ -96,19 +113,18 @@ const FitBounds: React.FC<{ polygons: LatLngTuple[][] }> = ({ polygons }) => {
 const MapComponent: React.FC<MapComponentProps> = ({ searchTerm }) => {
   const dispatch = useDispatch()
   const polygons = useSelector((state: RootState) => state.polygon.polygons)
-  const selectedPolygonId = useSelector((state: RootState) => state.polygon.selectedPolygonIndex)
-  const [selectedPolygon, setSelectedPolygon] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
 
   const mapRef = useRef<L.Map>(null)
+  const drawnItemsRef = useRef<L.FeatureGroup>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const handleCreated = (e: any) => {
     const { layer } = e
     const coordinates = layer.getLatLngs()[0].map((latLng: L.LatLng) => [latLng.lat, latLng.lng] as LatLngTuple)
 
     // Check for intersections with existing polygons
-    const intersects = polygons.some((polygon) => doPolygonsIntersect(coordinates, polygon.coordinates))
-debugger
+    const intersects = polygons.some((polygon: any) => doPolygonsIntersect(coordinates, polygon.coordinates))
+
     if (intersects) {
       setError("Error: New polygon intersects with an existing polygon.")
       layer.remove()
@@ -135,7 +151,7 @@ debugger
 
         // Check for intersections with other polygons
         const intersects = polygons.some(
-          (polygon) => polygon.id !== id && doPolygonsIntersect(coordinates, polygon.coordinates),
+          (polygon: any) => polygon.id !== id && doPolygonsIntersect(coordinates, polygon.coordinates),
         )
 
         if (intersects) {
@@ -143,7 +159,7 @@ debugger
           return
         }
 
-        const updatedPolygon = polygons.find((p) => p.id === id)
+        const updatedPolygon = polygons.find((p: any) => p.id === id)
         if (updatedPolygon) {
           dispatch(updatePolygon({ ...updatedPolygon, coordinates }))
         }
@@ -170,95 +186,87 @@ debugger
     return area * 111.32 * 111.32 // Convert to square kilometers (approximate)
   }
 
-  const handlePolygonClick = useCallback((id: string) => {
-    setSelectedPolygon(id)
-  }, [])
-
-  const handleReshape = useCallback((id: string) => {
-    const map = useMap()
-  // selectedPolygonId
-    debugger
-    const geojson = polygons.filter(p => p.id == polygons[selectedPolygonId].id)[0].coordinates
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
-
-    L.geoJSON(geojson).addTo(map);
-  }, [])
-
   const filteredPolygons = polygons.filter(
-    (polygon) =>
+    (polygon: any) =>
       polygon?.label.toLowerCase().includes(searchTerm?.toLowerCase()) ||
       polygon?.id.toLowerCase().includes(searchTerm?.toLowerCase()),
   )
 
   useEffect(() => {
     if (mapRef.current && filteredPolygons.length > 0) {
-      const bounds = latLngBounds(filteredPolygons.flatMap((p) => p.coordinates))
+      const bounds = latLngBounds(filteredPolygons.flatMap((p: any) => p.coordinates))
       mapRef.current.fitBounds(bounds)
     }
-  }, [filteredPolygons])
+  }, [filteredPolygons, mapRef]) // Added mapRef to dependencies
 
   return (
-    <div className="h-screen w-full">
-      <MapContainer center={[51.505, -0.09]} zoom={13} className="h-full w-full" ref={mapRef}>
-        <LayersControl position="topleft">
-          <LayersControl.BaseLayer checked name="OSM">
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name="Google">
-            <TileLayer
-              url="http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
-              subdomains={["mt0", "mt1", "mt2", "mt3"]}
-            />
-          </LayersControl.BaseLayer>
-        </LayersControl>
+    <div className="flex flex-col h-screen">
+      <div className="flex-grow">
+      {error && <p id="error-message">{error}</p>}
 
-        <FeatureGroup>
-          <EditControl
-            position="topleft"
-            onCreated={handleCreated}
-            onEdited={handleEdited}
-            draw={{
-              rectangle: false,
-              circle: false,
-              circlemarker: false,
-              marker: false,
-              polyline: false,
-              polygon: {
-                allowIntersection: false,
-                drawError: {
-                  color: "#e1e4e8",
-                  message: "<strong>Error:</strong> Polygon edges cannot cross!",
+        <MapContainer center={[51.505, -0.09]} zoom={13} className="h-full w-full" ref={mapRef}>
+          <LayersControl position="topleft">
+            <LayersControl.BaseLayer checked name="OSM">
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            </LayersControl.BaseLayer>
+            <LayersControl.BaseLayer name="Google">
+              <TileLayer
+                url="http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+                subdomains={["mt0", "mt1", "mt2", "mt3"]}
+              />
+            </LayersControl.BaseLayer>
+          </LayersControl>
+
+          <FeatureGroup>
+            <EditControl
+              position="topleft"
+              onCreated={handleCreated}
+              onEdited={handleEdited}
+              draw={{
+                rectangle: false,
+                circle: false,
+                circlemarker: false,
+                marker: false,
+                polyline: false,
+                polygon: {
+                  allowIntersection: false,
+                  drawError: {
+                    color: "#e1e4e8",
+                    message: "<strong>Error:</strong> Polygon edges cannot cross!",
+                  },
+                  shapeOptions: {
+                    color: "#000000",
+                    fillColor: "#FFFFFF",
+                  },
                 },
-                shapeOptions: {
-                  color: "#000000",
-                  fillColor: "#FFFFFF",
-                },
-              },
-            }}
-          />
-          {polygons.map((polygon) => (
-            <Polygon
-            key={polygon.id}
-            positions={polygon.coordinates}
-            pathOptions={{
-              color: polygon.borderColor,
-              fillColor: polygon.fillColor,
-              fillOpacity: 0.7,
-              weight: 2,
-            }}
-            eventHandlers={{
-              click: () => handlePolygonClick(polygon.id),
-            }}
-          >
-            {/* <L.Tooltip permanent>{polygon.label}</L.Tooltip> */}
-          </Polygon>
-          ))}
-        </FeatureGroup>
-        <GeolocationControl />
-        <FitBounds polygons={polygons.map((p) => p.coordinates)} />
-      </MapContainer>
+              }}
+            />
+            {polygons.map((polygon) => {
+              const center = calculateCenter(polygon.coordinates)
+              const area = calculateArea(polygon.coordinates)
+              return (
+              <Polygon
+              key={polygon.id}
+              positions={polygon.coordinates}
+              pathOptions={{
+                color: polygon.borderColor,
+                fillColor: polygon.fillColor,
+                fillOpacity: 0.7,
+                weight: 2,
+              }}
+            >
+              <Marker key={`marker-${polygon.id}`} position={center}>
+                <Tooltip>
+                  <div className="text-xs font-semibold">Area: {area.toFixed(2)} km</div>
+                </Tooltip>
+              </Marker>
+            </Polygon>
+            )})}
+          </FeatureGroup>
+          <GeolocationControl />
+          <FitBounds polygons={polygons.map((p) => p.coordinates)} />
+        </MapContainer>
+      </div>
     </div>
   )
 }

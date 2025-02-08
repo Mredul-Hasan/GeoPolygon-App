@@ -2,10 +2,9 @@ import type React from "react"
 import { useState } from "react"
 import { useSelector, useDispatch } from "react-redux"
 import type { RootState } from "../lib/store"
-import { updatePolygon, deletePolygon, updatePolygonLabel, reshapePolygon } from "../lib/features/polygonSlice"
-import { TrashIcon, PencilIcon, CloudArrowDownIcon } from "@heroicons/react/24/outline"
+import { updatePolygon, deletePolygon, updatePolygonLabel } from "../lib/features/polygonSlice"
+import { Trash2, Download, Edit3, Edit2 } from "lucide-react"
 import type { FeatureCollection, Feature, Polygon as GeoJSONPolygon } from "geojson"
-import { PenIcon } from "lucide-react"
 
 interface PolygonListProps {
   searchTerm: string
@@ -44,7 +43,7 @@ const PolygonList: React.FC<PolygonListProps> = ({ searchTerm }) => {
       ),
     }
 
-    const polygon = polygons.filter(p => p.id == id)[0]
+    const polygon = polygons.filter((p) => p.id == id)[0]
     const dataStr = JSON.stringify(geoJSON, null, 2)
     const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr)
     const exportFileDefaultName = `${polygon.label}.json`
@@ -59,13 +58,8 @@ const PolygonList: React.FC<PolygonListProps> = ({ searchTerm }) => {
     dispatch(deletePolygon(id))
   }
 
-  const handleReshape = (id: string) => {
-    dispatch(reshapePolygon(id))
-  }
-
   const handleLabelChange = (id: string, newLabel: string) => {
     dispatch(updatePolygonLabel({ id, label: newLabel }))
-    setEditingLabel(null)
   }
 
   const filteredPolygons = polygons.filter(
@@ -96,7 +90,7 @@ const PolygonList: React.FC<PolygonListProps> = ({ searchTerm }) => {
                 <h3 className="text-lg font-semibold text-gray-800">{polygon.label}</h3>
               )}
               <button onClick={() => setEditingLabel(polygon.id)} className="text-gray-500 hover:text-gray-700">
-                <PencilIcon className="h-5 w-5" />
+                <Edit2 className="h-5 w-5" />
               </button>
             </div>
             <p className="text-sm text-gray-600 mb-4">ID: {polygon.id.slice(0, 8)}</p>
@@ -127,28 +121,23 @@ const PolygonList: React.FC<PolygonListProps> = ({ searchTerm }) => {
               </div>
             </div>
           </div>
-          <div className="bg-gray-50 px-6 py-3">
-            <button
-              onClick={() => handleDelete(polygon.id)}
-              className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-300"
-            >
-              <TrashIcon className="w-4 h-4 mr-2" />
-              Delete
-            </button>
-            <button
-              onClick={() => handleExport(polygon.id)}
-              className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-black-600 border border-gray-300 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-300"
-            >
-              <CloudArrowDownIcon className="w-4 h-4 mr-2" />
-              Export Polygon
-            </button>
-            <button
-              onClick={() => handleReshape(polygon.id)}
-              className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-black-600 border border-gray-300 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-300"
-            >
-              <PenIcon className="w-4 h-4 mr-2" />
-              Reshape Polygon
-            </button>
+          <div className="bg-gray-50 px-6 py-4">
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => handleDelete(polygon.id)}
+                className="flex-1 flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-300"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </button>
+              <button
+                onClick={() => handleExport(polygon.id)}
+                className="flex-1 flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-300"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </button>
+            </div>
           </div>
         </div>
       ))}
