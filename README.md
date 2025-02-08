@@ -108,7 +108,7 @@ http://localhost:3000
 Here’s an overview of the project structure:
 
 ```
-my-v0-project/
+GeoPolygon-App/
 ├── public/               # Static assets (images, fonts, etc.)
 ├── src/                  # Source code
 │   ├── app/              # App Router (Next.js 13+)
