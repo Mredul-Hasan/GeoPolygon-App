@@ -1,6 +1,6 @@
-# My V0 Project
+# GeoPolygon App
 
-Welcome to **My V0 Project**! This is a Next.js project built with TypeScript, Tailwind CSS, and Redux Toolkit for state management. It also integrates React Leaflet for map functionality. Below are clear instructions on how to set up and run the project locally.
+Welcome to **GeoPolygon App**! This is a Next.js project built with TypeScript, Tailwind CSS, and Redux Toolkit for state management. It also integrates React Leaflet for map functionality. Below are clear instructions on how to set up and run the project locally.
 
 ---
 
@@ -21,8 +21,8 @@ Before you begin, ensure you have the following installed on your machine:
 If you haven't already, clone the repository to your local machine:
 
 ```bash
-git clone https://github.com/your-username/my-v0-project.git
-cd my-v0-project
+https://github.com/Mredul-Hasan/GeoPolygon-App.git
+cd GeoPolygon-App
 ```
 
 If you're not using Git, you can download the project as a ZIP file and extract it.
